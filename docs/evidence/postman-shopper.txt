@@ -1,0 +1,87 @@
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@3.4.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated @faker-js/faker@5.5.3: Please update to a newer version.
+(node:33724) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+Basketwise CS3111
+
+□ Shopper workflow
+└ 1 Register shopper
+  GET http://localhost:18080/api/auth/csrf [200 OK, 559B, 27ms]
+  POST http://localhost:18080/api/auth/register [201 Created, 435B, 70ms]
+  √  Expected status
+
+└ 2 Sign in
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 7ms]
+  POST http://localhost:18080/api/auth/login [200 OK, 445B, 61ms]
+  √  Expected status
+
+└ 3 Current account
+  GET http://localhost:18080/api/auth/me [200 OK, 439B, 6ms]
+  √  Expected status
+
+└ 4 Catalog
+  GET http://localhost:18080/api/catalog?locality=Kothrud [200 OK, 30.87kB, 13ms]
+  √  Expected status
+
+└ 5 Save list
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 5ms]
+  POST http://localhost:18080/api/lists [201 Created, 588B, 20ms]
+  √  Expected status
+
+└ 6 Compare
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 5ms]
+  POST http://localhost:18080/api/comparisons [200 OK, 11.94kB, 11ms]
+  √  Expected status
+  √  Complete basket exists
+
+└ 7 Save plan
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 5ms]
+  POST http://localhost:18080/api/plans [201 Created, 1.64kB, 18ms]
+  √  Expected status
+
+└ 8 List saved snapshots
+  GET http://localhost:18080/api/plans [200 OK, 1.63kB, 7ms]
+  √  Expected status
+
+└ 9 Personal suggestions
+  GET http://localhost:18080/api/suggestions [200 OK, 742B, 10ms]
+  √  Expected status
+
+└ 10 Publish feedback
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 6ms]
+  POST http://localhost:18080/api/reviews [201 Created, 499B, 16ms]
+  √  Expected status
+
+└ 11 Delete list
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 4ms]
+  DELETE http://localhost:18080/api/lists/19 [200 OK, 345B, 14ms]
+  √  Expected status
+
+└ 12 Sign out
+  GET http://localhost:18080/api/auth/csrf [200 OK, 470B, 3ms]
+  POST http://localhost:18080/api/auth/logout [200 OK, 453B, 4ms]
+  √  Expected status
+
+┌─────────────────────────┬──────────────────┬──────────────────┐
+│                         │         executed │           failed │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              iterations │                1 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│                requests │               20 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│            test-scripts │               12 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│      prerequest-scripts │               13 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              assertions │               13 │                0 │
+├─────────────────────────┴──────────────────┴──────────────────┤
+│ total run duration: 868ms                                     │
+├───────────────────────────────────────────────────────────────┤
+│ total data received: 46.87kB (approx)                         │
+├───────────────────────────────────────────────────────────────┤
+│ average response time: 15ms [min: 3ms, max: 70ms, s.d.: 17ms] │
+└───────────────────────────────────────────────────────────────┘

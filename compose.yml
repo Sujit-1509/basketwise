@@ -1,0 +1,33 @@
+name: basketwise
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: basketwise
+      MYSQL_USER: basketwise
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Run scripts/setup.ps1}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Run scripts/setup.ps1}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      DB_URL: jdbc:mysql://db:3306/basketwise?connectionTimeZone=UTC
+      DB_USER: basketwise
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  mysql-data:

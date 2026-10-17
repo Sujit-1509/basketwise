@@ -1,0 +1,2 @@
+PASS: account, list, and byte-identical price snapshot survived backend and MySQL restart. Session cookie is HTTP-only, SameSite=Lax.
+Archived active products left by this session’s browser fixtures: 0

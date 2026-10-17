@@ -1,0 +1,125 @@
+ Image basketwise-app Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 599B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 687B 0.0s done
+#2 DONE 0.0s
+
+#3 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [internal] load metadata for docker.io/library/maven:3.9.9-eclipse-temurin-21
+#5 DONE 0.2s
+
+#6 [internal] load metadata for docker.io/library/node:22-alpine
+#6 ...
+
+#7 [internal] load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+#7 DONE 1.6s
+
+#6 [internal] load metadata for docker.io/library/node:22-alpine
+#6 DONE 1.6s
+
+#8 [internal] load .dockerignore
+#8 transferring context: 188B done
+#8 DONE 0.0s
+
+#9 [frontend 1/6] FROM docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+#9 resolve docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 0.0s done
+#9 DONE 0.0s
+
+#10 [stage-2 1/4] FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:51ab5e3302e7141ce665ca3ea85e8b5cd648eafbc3c0c90dd79d6537684e4555
+#10 resolve docker.io/library/eclipse-temurin:21-jre-alpine@sha256:51ab5e3302e7141ce665ca3ea85e8b5cd648eafbc3c0c90dd79d6537684e4555 0.0s done
+#10 DONE 0.0s
+
+#11 [backend 1/7] FROM docker.io/library/maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e
+#11 resolve docker.io/library/maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e 0.0s done
+#11 DONE 0.0s
+
+#12 [internal] load build context
+#12 transferring context: 121.72kB 0.0s done
+#12 DONE 0.0s
+
+#13 [frontend 2/6] WORKDIR /build
+#13 CACHED
+
+#14 [frontend 3/6] COPY frontend/package*.json ./
+#14 CACHED
+
+#15 [backend 3/7] COPY backend/pom.xml ./
+#15 CACHED
+
+#16 [backend 2/7] WORKDIR /build
+#16 CACHED
+
+#17 [frontend 4/6] RUN npm ci
+#17 CACHED
+
+#18 [backend 4/7] RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:resolve
+#18 CACHED
+
+#19 [frontend 5/6] COPY frontend/ ./
+#19 DONE 0.0s
+
+#20 [backend 5/7] COPY backend/src ./src
+#20 DONE 0.0s
+
+#21 [frontend 6/6] RUN npm run build
+#21 0.310 
+#21 0.310 > basketwise@1.0.0 build
+#21 0.310 > tsc -b && vite build
+#21 0.310 
+#21 3.995 vite v7.3.7 building client environment for production...
+#21 4.055 transforming...
+#21 5.824 ✓ 1617 modules transformed.
+#21 5.932 rendering chunks...
+#21 6.036 computing gzip size...
+#21 6.049 dist/index.html                        0.56 kB │ gzip:   0.37 kB
+#21 6.049 dist/assets/index-Dgdnj9QC.css        34.46 kB │ gzip:   8.33 kB
+#21 6.049 dist/assets/save-tD7icAbD.js           0.32 kB │ gzip:   0.23 kB
+#21 6.049 dist/assets/trash-2-Bwpscgug.js        0.35 kB │ gzip:   0.25 kB
+#21 6.049 dist/assets/Login-CT-7NxjM.js          2.79 kB │ gzip:   1.33 kB
+#21 6.049 dist/assets/History-CDMTQaSP.js        2.98 kB │ gzip:   1.24 kB
+#21 6.049 dist/assets/Feedback-Dz7m_2J6.js       4.07 kB │ gzip:   1.87 kB
+#21 6.049 dist/assets/GroceryList-DEfu27Eg.js    5.77 kB │ gzip:   2.24 kB
+#21 6.049 dist/assets/Compare-C1Cr7yys.js        7.40 kB │ gzip:   2.98 kB
+#21 6.049 dist/assets/Admin-3gIoDOFx.js          8.55 kB │ gzip:   2.89 kB
+#21 6.049 dist/assets/index-CB6qMvnI.js        363.81 kB │ gzip: 118.58 kB
+#21 6.049 ✓ built in 2.03s
+#21 DONE 6.1s
+
+#22 [backend 6/7] COPY --from=frontend /build/dist ./src/main/resources/static
+#22 DONE 0.0s
+
+#23 [backend 7/7] RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+#23 DONE 4.5s
+
+#24 [stage-2 2/4] RUN addgroup -S app && adduser -S app -G app
+#24 CACHED
+
+#25 [stage-2 3/4] WORKDIR /app
+#25 CACHED
+
+#26 [stage-2 4/4] COPY --from=backend /build/target/basketwise-1.0.0.jar app.jar
+#26 DONE 0.1s
+
+#27 exporting to image
+#27 exporting layers
+#27 exporting layers 1.2s done
+#27 exporting manifest sha256:7586a298dd2d79fe4203a3eb00704737be379a375a1fad4f28a8122d3415be21 0.0s done
+#27 exporting config sha256:6dd976c2036f3300f710cfaff11e4391ce64948f54cbb280f09ddc7ef4ff9e32 done
+#27 exporting attestation manifest sha256:f72ee193c103ae10732a8b5e3134baee97d51a2a9edd4e2faeb6c5167e7b4dbc 0.0s done
+#27 exporting manifest list sha256:125d39c05567bc75b5c7851619ee7d52216ebbffa173d5e1d14a384e5a48eebe done
+#27 naming to docker.io/library/basketwise-app:latest done
+#27 unpacking to docker.io/library/basketwise-app:latest
+#27 unpacking to docker.io/library/basketwise-app:latest 0.3s done
+#27 DONE 1.5s
+
+#28 resolving provenance for metadata file
+#28 DONE 0.0s
+ Image basketwise-app Built 

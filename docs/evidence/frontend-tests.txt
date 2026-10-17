@@ -1,0 +1,19 @@
+
+> basketwise@1.0.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Users/sujit/Documents/Codex/2026-10-16/we/outputs/grocery-compare/frontend
+
+ ✓ src/navigation.test.ts (7 tests) 3ms
+ ✓ src/state.test.ts (2 tests) 17ms
+stdout | src/ProductCard.test.tsx > measures memoized updates with stable product properties
+ProductCard actual render durations (ms): 1.451, 0.007
+
+ ✓ src/ProductCard.test.tsx (3 tests) 82ms
+
+ Test Files  3 passed (3)
+      Tests  12 passed (12)
+   Start at  23:04:52
+   Duration  1.71s (transform 115ms, setup 795ms, collect 310ms, tests 103ms, environment 2.24s, prepare 457ms)
+

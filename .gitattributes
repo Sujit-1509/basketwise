@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.png binary
+
+# Keep recorded verification files byte-for-byte, including their line endings.
+docs/evidence/** -text

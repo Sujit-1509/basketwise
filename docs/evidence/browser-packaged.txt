@@ -1,0 +1,25 @@
+
+> basketwise@1.0.0 test:e2e
+> playwright test
+
+
+Running 14 tests using 1 worker
+
+(node:36468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 e2e\admin.spec.ts:13:1 › administrator can maintain inventory and archive catalog records (1.5s)
+  ok  2 e2e\features.spec.ts:13:1 › catalog search, category, brand, no-results and clear filters work (449ms)
+  ok  3 e2e\features.spec.ts:42:1 › lists support create, clone, edit, delete and saving after deleting the loaded list (1.8s)
+  ok  4 e2e\features.spec.ts:126:1 › whole-pack controls, explicit alternatives and budget validation work (1.0s)
+  ok  5 e2e\features.spec.ts:187:1 › comparison filters, timestamps, fees, whole-list totals and split results agree with an independent enumeration (1.0s)
+  ok  6 e2e\features.spec.ts:266:1 › admin localities, active offers, stock, pickup fees, immutable snapshots and repeat suggestions work together (1.7s)
+  ok  7 e2e\features.spec.ts:363:1 › feedback keeps the selected product through sign-in and blocks publishing when no stores serve the locality (855ms)
+  ok  8 e2e\features.spec.ts:404:1 › admin New actions reset unsaved product, store and inventory forms (1.4s)
+  ok  9 e2e\features.spec.ts:423:1 › catalog and logout network failures are visible and recover without losing the draft (1.2s)
+  ok 10 e2e\features.spec.ts:461:1 › shopper routes and admin forms fit a phone viewport and route guards work (2.0s)
+  ok 11 e2e\features.spec.ts:509:1 › admin product/store edits and dated inventory offers persist through the form (2.6s)
+  ok 12 e2e\features.spec.ts:604:1 › every catalog illustration is available and contains an SVG image (168ms)
+  ok 13 e2e\shopping.spec.ts:2:1 › shopper completes registration, list, comparison, snapshot and feedback flow (2.8s)
+  ok 14 e2e\shopping.spec.ts:77:1 › mobile catalog and list fit the viewport (471ms)
+
+  14 passed (20.4s)

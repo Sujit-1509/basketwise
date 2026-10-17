@@ -1,0 +1,21 @@
+
+> basketwise@1.0.0 build
+> tsc -b && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 1617 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                        0.56 kB │ gzip:   0.37 kB
+dist/assets/index-Dgdnj9QC.css        34.46 kB │ gzip:   8.33 kB
+dist/assets/save-tD7icAbD.js           0.32 kB │ gzip:   0.23 kB
+dist/assets/trash-2-Bwpscgug.js        0.35 kB │ gzip:   0.25 kB
+dist/assets/Login-CT-7NxjM.js          2.79 kB │ gzip:   1.33 kB
+dist/assets/History-CDMTQaSP.js        2.98 kB │ gzip:   1.24 kB
+dist/assets/Feedback-Dz7m_2J6.js       4.07 kB │ gzip:   1.87 kB
+dist/assets/GroceryList-DEfu27Eg.js    5.77 kB │ gzip:   2.24 kB
+dist/assets/Compare-C1Cr7yys.js        7.40 kB │ gzip:   2.98 kB
+dist/assets/Admin-3gIoDOFx.js          8.55 kB │ gzip:   2.89 kB
+dist/assets/index-CB6qMvnI.js        363.81 kB │ gzip: 118.58 kB
+✓ built in 2.20s

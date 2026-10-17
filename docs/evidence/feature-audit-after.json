@@ -1,0 +1,27 @@
+[
+  {
+    "check": "Null item returns a validation error",
+    "expected": 400,
+    "actual": 400
+  },
+  {
+    "check": "Missing query parameters return a validation error",
+    "expected": 400,
+    "actual": 400
+  },
+  {
+    "check": "New list action exists",
+    "expected": true,
+    "actual": true
+  },
+  {
+    "check": "No-store feedback publishing is disabled",
+    "expected": true,
+    "actual": true
+  },
+  {
+    "check": "New admin form action clears an unsaved draft",
+    "expected": "",
+    "actual": ""
+  }
+]
