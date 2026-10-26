@@ -4,7 +4,7 @@ Base URL is `http://localhost:18080/api`. Prices, fees, budget, and totals use i
 
 ## Sessions and CSRF
 
-Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` in the returned `headerName` for every POST/PUT/DELETE. Obtain a new token after login/logout. Spring's login endpoint expects `application/x-www-form-urlencoded`; other writes expect JSON.
+Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` in the returned `headerName` for every POST/PUT/PATCH/DELETE. Obtain a new token after login/logout. Spring's login endpoint expects `application/x-www-form-urlencoded`; other writes expect JSON.
 
 | Method | Endpoint | Input / behavior | Access |
 |---|---|---|---|
@@ -19,9 +19,16 @@ Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` 
 | GET | `/localities` | Default Pune localities plus distinct active-store service areas | Public |
 | POST | `/comparisons` | Comparison request below | Signed in |
 | GET | `/lists` | Current user's lists and items | Signed in |
-| POST | `/lists` | name plus comparison request | Signed in |
+| POST | `/lists` | name, locality, optional budget, items (may be empty) | Signed in |
+| GET | `/lists/{id}` | Reopen one owned list | Owner |
 | PUT | `/lists/{id}` | Replace owned list and items | Owner |
 | DELETE | `/lists/{id}` | Delete owned list and items | Owner |
+| PATCH | `/lists/{id}/name` | `{ "name": "Monthly staples" }`; rename only | Owner |
+| POST | `/lists/{id}/duplicate` | `{ "name": "Next month" }`; independent copy, returns 201 | Owner |
+| DELETE | `/lists/{id}/items` | Empty list; preserve name, locality and budget | Owner |
+| POST | `/lists/{id}/items` | `{ "productId": 2, "quantity": 1 }`; add packs, merge existing product | Owner |
+| PUT | `/lists/{id}/items/{productId}` | `{ "quantity": 3 }`; set an existing line's pack count | Owner |
+| DELETE | `/lists/{id}/items/{productId}` | Remove line; already absent is a successful no-op | Owner |
 | GET | `/plans` | Current user's immutable snapshots | Signed in |
 | POST | `/plans` | name, request, basketKey; recomputes server totals | Signed in |
 | DELETE | `/plans/{id}` | Delete owned plan | Owner |
@@ -36,6 +43,16 @@ Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` 
 | PUT | `/admin/inventory` | Upsert by storeId/productId | Admin |
 
 `GET /actuator/health` is public, outside the `/api` prefix, and exposes only health status.
+
+## Saved basket editing
+
+All list reads and mutations return the existing `ListView` shape: `{ "list": { "id", "ownerId", "name", "locality", "budget", "updatedAt" }, "items": [{ "id", "listId", "productId", "quantity" }] }`. Delete-list returns `{ "ok": true }`. Item order is unspecified; use productId as the UI key. Names and localities are trimmed on full saves; rename trims the name. Money remains integer paise.
+
+A saved list can contain zero to 100 distinct products. Each line has 1–999 whole packs. Adding an existing product increments its quantity; exceeding 999 returns 400 without changing the list. Full-list replacement still rejects duplicate product IDs instead of silently combining ambiguous input. Adding and changing quantities require an active catalog product. Removing, clearing, renaming and duplicating remain available when an old product is archived. A duplicate retains the archived product ID; remove it before comparing. An empty list can be saved or duplicated, but cannot be compared or saved as a priced plan.
+
+Mutations lock the owned shopping-list row for the transaction. READ_COMMITTED isolation ensures an incremental request that waited for the lock reads the previous request's committed quantities. This serializes increments and other mutations of the same list without blocking edits to other lists. A full PUT intentionally replaces the whole list: a stale client's PUT can overwrite a newer edit. Use item endpoints for individual edits; full-document conflict detection is not implemented. POST add is not idempotent: do not retry an uncertain response automatically; refetch the list first.
+
+Missing and unowned list IDs both return 404. Item PUT returns 404 when the line is absent. Missing sessions return 401 (a write without a valid CSRF token can return 403 first). No list operation reserves stock, changes inventory, or edits saved price snapshots. Totals must still come from `/comparisons`; a list itself has no retailer-specific total.
 
 ## Comparison request
 

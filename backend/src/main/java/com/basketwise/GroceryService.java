@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -70,7 +71,11 @@ public class GroceryService {
             @NotBlank @Size(max = 100) String name,
             @NotBlank @Size(max = 80) String locality,
             @Min(0) @Max(1000000000) Long budget,
-            @NotEmpty @Size(max = 100) List<@NotNull @Valid Line> items) {}
+            @NotNull @Size(max = 100) List<@NotNull @Valid Line> items) {}
+
+    record ListName(@NotBlank @Size(max = 100) String name) {}
+
+    record Quantity(@NotNull @Min(1) @Max(999) Integer quantity) {}
 
     record CompareInput(
             @NotBlank @Size(max = 80) String locality,
@@ -263,6 +268,7 @@ public class GroceryService {
         return calculate(input);
     }
 
+    @Transactional(readOnly = true)
     List<ListView> lists(Authentication auth) {
         return lists.findByOwnerIdOrderByUpdatedAtDesc(current(auth).id).stream()
                 .map(l -> new ListView(l, items.findByListId(l.id)))
@@ -270,15 +276,20 @@ public class GroceryService {
     }
 
     ShoppingList ownList(Long id, Authentication a) {
+        return lists.findLockedByIdAndOwnerId(id, current(a).id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found"));
+    }
+
+    @Transactional(readOnly = true)
+    ListView getList(Long id, Authentication a) {
         var l =
-                lists.findById(id)
+                lists.findByIdAndOwnerId(id, current(a).id)
                         .orElseThrow(
                                 () ->
                                         new ResponseStatusException(
                                                 HttpStatus.NOT_FOUND, "List not found"));
-        if (!l.ownerId.equals(current(a).id))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found");
-        return l;
+        return new ListView(l, items.findByListId(id));
     }
 
     @Transactional
@@ -288,15 +299,15 @@ public class GroceryService {
         return writeList(l, input);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     ListView updateList(Long id, @Valid ListInput input, Authentication a) {
         return writeList(ownList(id, a), input);
     }
 
     ListView writeList(ShoppingList l, ListInput input) {
         validateLines(input.items());
-        l.name = input.name();
-        l.locality = input.locality();
+        l.name = input.name().trim();
+        l.locality = input.locality().trim();
         l.budget = input.budget();
         l.updatedAt = Instant.now();
         lists.save(l);
@@ -316,13 +327,106 @@ public class GroceryService {
         return new ListView(l, items.saveAll(lines));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     Map<String, Boolean> deleteList(Long id, Authentication a) {
         var l = ownList(id, a);
         items.deleteByListId(id);
         items.flush();
         lists.delete(l);
         return Map.of("ok", true);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView renameList(Long id, ListName input, Authentication a) {
+        var l = ownList(id, a);
+        l.name = input.name().trim();
+        return changedList(l);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView duplicateList(Long id, ListName input, Authentication a) {
+        var source = ownList(id, a);
+        var copy = new ShoppingList();
+        copy.ownerId = source.ownerId;
+        copy.name = input.name().trim();
+        copy.locality = source.locality;
+        copy.budget = source.budget;
+        lists.save(copy);
+        for (var line : items.findByListId(source.id)) {
+            var item = new ListItem();
+            item.listId = copy.id;
+            item.productId = line.productId;
+            item.quantity = line.quantity;
+            items.save(item);
+        }
+        return changedList(copy);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView clearList(Long id, Authentication a) {
+        var l = ownList(id, a);
+        items.deleteByListId(id);
+        return changedList(l);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView addListItem(Long id, Line input, Authentication a) {
+        var l = ownList(id, a);
+        validateLines(List.of(input));
+        var existing = items.findByListId(id);
+        var line =
+                existing.stream()
+                        .filter(i -> i.productId.equals(input.productId()))
+                        .findFirst()
+                        .orElse(null);
+        if (line == null) {
+            if (existing.size() >= 100)
+                throw new IllegalArgumentException(
+                        "A list can contain at most 100 different products");
+            line = new ListItem();
+            line.listId = id;
+            line.productId = input.productId();
+        }
+        int quantity = line.quantity + input.quantity();
+        if (quantity > 999)
+            throw new IllegalArgumentException("A product can have at most 999 packs");
+        line.quantity = quantity;
+        items.save(line);
+        return changedList(l);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView setListQuantity(Long id, Long productId, Quantity input, Authentication a) {
+        var l = ownList(id, a);
+        var line =
+                items.findByListId(id).stream()
+                        .filter(i -> i.productId.equals(productId))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND, "Item not found"));
+        validateLines(List.of(new Line(productId, input.quantity())));
+        line.quantity = input.quantity();
+        items.save(line);
+        return changedList(l);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    ListView removeListItem(Long id, Long productId, Authentication a) {
+        var l = ownList(id, a);
+        items.findByListId(id).stream()
+                .filter(i -> i.productId.equals(productId))
+                .findFirst()
+                .ifPresent(items::delete);
+        return changedList(l);
+    }
+
+    ListView changedList(ShoppingList l) {
+        l.updatedAt = Instant.now();
+        lists.save(l);
+        items.flush();
+        return new ListView(l, items.findByListId(l.id));
     }
 
     List<SavedPlan> plans(Authentication a) {

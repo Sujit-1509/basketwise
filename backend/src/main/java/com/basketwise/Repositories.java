@@ -2,7 +2,10 @@ package com.basketwise;
 
 import com.basketwise.Models.*;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.util.*;
 
@@ -20,6 +23,11 @@ interface Inventories extends JpaRepository<Inventory, Long> {
 
 interface ShoppingLists extends JpaRepository<ShoppingList, Long> {
     List<ShoppingList> findByOwnerIdOrderByUpdatedAtDesc(Long id);
+
+    Optional<ShoppingList> findByIdAndOwnerId(Long id, Long ownerId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<ShoppingList> findLockedByIdAndOwnerId(Long id, Long ownerId);
 }
 
 interface ListItems extends JpaRepository<ListItem, Long> {

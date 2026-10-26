@@ -4,7 +4,7 @@ const csrf = {
   script: {
     type: "text/javascript",
     exec: [
-      "if (['POST','PUT','DELETE'].includes(pm.request.method)) {",
+      "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method)) {",
       "  pm.sendRequest(pm.collectionVariables.get('baseUrl') + '/api/auth/csrf', (err, res) => {",
       "    if (err) throw err; const csrf = res.json(); pm.request.headers.upsert({key:csrf.headerName,value:csrf.token});",
       "  });",
@@ -135,6 +135,23 @@ const collection = {
           [],
           201,
         ),
+        req("Reopen saved list", "GET", "/api/lists/{{listId}}"),
+        req("Add more packs", "POST", "/api/lists/{{listId}}/items", { productId: 2, quantity: 2 }, [
+          "pm.test('Duplicate product merged', () => { const lines=pm.response.json().items.filter(i=>i.productId===2); pm.expect(lines.length).to.eql(1); pm.expect(lines[0].quantity).to.eql(3); });",
+        ]),
+        req("Set pack quantity", "PUT", "/api/lists/{{listId}}/items/2", { quantity: 4 }),
+        req("Rename list", "PATCH", "/api/lists/{{listId}}/name", { name: "Monthly staples" }),
+        req("Duplicate list", "POST", "/api/lists/{{listId}}/duplicate", { name: "Next month" }, [
+          "pm.collectionVariables.set('copyId', pm.response.json().list.id);",
+        ], 201),
+        req("Remove item", "DELETE", "/api/lists/{{listId}}/items/2"),
+        req("Clear original list", "DELETE", "/api/lists/{{listId}}/items", undefined, [
+          "pm.test('List cleared, settings retained', () => { const result=pm.response.json(); pm.expect(result.items).to.eql([]); pm.expect(result.list.name).to.eql('Monthly staples'); pm.expect(result.list.budget).to.eql(50000); });",
+        ]),
+        req("Check independent copy", "GET", "/api/lists/{{copyId}}", undefined, [
+          "pm.test('Copy unaffected', () => { const lines=pm.response.json().items; pm.expect(lines.length).to.eql(2); pm.expect(lines.find(i=>i.productId===2).quantity).to.eql(4); });",
+        ]),
+        req("Delete copied list", "DELETE", "/api/lists/{{copyId}}"),
         req("11 Delete list", "DELETE", "/api/lists/{{listId}}"),
         req("12 Sign out", "POST", "/api/auth/logout"),
       ],

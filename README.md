@@ -2,30 +2,38 @@
 
 Smart Grocery Comparison and Recommendation System is a CS3111 Web Technology course project for Pune. Shoppers build exact-product grocery lists, compare complete basket costs including store fees, and save price snapshots. The initial catalog contains 30 illustrative products and six fictional stores serving Kothrud.
 
+Team members: read the [handoff notes](docs/TEAM-HANDOFF.md) for responsibilities, current status, setup, API integration work and acceptance checks.
+
 ## Start on Windows
 
-Install and start Docker Desktop with Linux containers. Open PowerShell 7 in this project directory, then run:
+Use PowerShell 7 and Node.js 22.12+ (or a compatible newer release). Docker is not needed for normal builds or startup. On a new computer, run these once:
+
+```powershell
+.\scripts\setup-native.ps1
+.\scripts\build-native.ps1
+```
+
+Setup downloads a private Java 21 JDK and MySQL 8.4 distribution under `%LOCALAPPDATA%\Basketwise`. It does not replace other Java or MySQL installations. The first build downloads frontend and Maven dependencies. The Maven Wrapper handles Maven installation.
+
+For everyday use:
 
 ```powershell
 .\scripts\start.ps1
 ```
 
-Open **http://localhost:18080** after the application reports `Started Application`. The first build downloads Node, Java 21, Maven, and MySQL dependencies and can take several minutes. No change to the computer's existing Java installation is needed.
+Open **http://localhost:18080** when the script reports ready. It starts native MySQL on localhost:3307 and the Java application on localhost:18080 in the background. React is already packaged inside the JAR; no separate frontend server is needed.
 
 ```powershell
-docker compose logs -f app
-docker compose ps
+.\scripts\stop.ps1                 # Stop both native processes; retain data
+Get-Content .runtime\app.log -Tail 40
+Get-Content .runtime\app-error.log -Tail 40
 ```
 
-Create a shopper account from the sign-in screen. For administration, open the ignored `.env` file created by setup and use `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Setup generates random passwords and never prints them. Keep `.env` private. The initial administrator is created on first startup; changing its password in `.env` later does not reset an existing account.
+After source changes, stop the app, run `build-native.ps1`, then start it again. Rebuilding an existing running JAR can fail because Windows locks it. Java uses a 384 MB maximum heap; this is not a limit on the entire process's memory. MySQL uses a 128 MB InnoDB buffer pool.
 
-```powershell
-docker compose stop       # Stop; retain data
-docker compose start     # Restart the existing containers
-docker compose down      # Remove containers; retain the named MySQL volume
-```
+Create a shopper account from the sign-in screen. For administration, open the ignored `.env` file and use `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Keep `.env` private. The administrator is created on first startup; editing its password in `.env` does not reset an existing account. Native MySQL's private `client.ini` also contains credentials and must not be shared.
 
-Do not remove the MySQL volume unless you intend to erase local accounts, lists, and history. No paid API key is required. Ports are bound to localhost; this configuration is for a local demonstration.
+Database files live at `%LOCALAPPDATA%\Basketwise\mysql-data`. Do not delete this folder: it holds accounts, lists, plans, reviews and catalog edits. The migration backup, when present, is in the ignored `.runtime\backups` directory. See [native Windows setup](docs/NATIVE-WINDOWS.md) for details. Both ports are bound to localhost; this is a local demonstration setup.
 
 ## Stack
 
@@ -42,28 +50,13 @@ The source and build configuration are included so the project can be explained,
 | `backend/src/main/resources/db/migration/` | Versioned MySQL schema |
 | `frontend/src/` | React pages, shared components, Redux state, and API queries |
 | `frontend/package.json` and `package-lock.json` | Frontend commands and dependency versions |
-| `compose.yml` and `Dockerfile` | Local database and application builds |
+| `scripts/setup-native.ps1`, `build-native.ps1`, `start.ps1`, `stop.ps1` | Native Windows setup, build and lifecycle |
+| `compose.yml` and `Dockerfile` | Optional Docker alternative; not used by the default startup |
 | `docs/` | Design notes, syllabus mapping, API collection, demonstration steps, and recorded test results |
 
-## Development without the full Docker build
+## Frontend development
 
-Use a Java 21 **JDK**, Node 22.12+ (or a compatible newer release), Docker Desktop, and PowerShell 7. A Java 8 runtime is insufficient. Set `$env:JAVA_HOME` to your Java 21 JDK for this terminal only.
-
-```powershell
-.\scripts\setup.ps1
-docker compose up -d db
-Get-Content .env | ForEach-Object {
-    if ($_ -match '^([A-Z_]+)=(.*)$') {
-        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
-    }
-}
-$env:DB_URL = 'jdbc:mysql://localhost:3307/basketwise?connectionTimeZone=UTC'
-cd backend
-$env:PORT = '18080'
-.\mvnw.cmd spring-boot:run
-```
-
-In a second terminal:
+Start the packaged native backend, then run Vite in a second terminal:
 
 ```powershell
 cd frontend
@@ -75,25 +68,18 @@ Open http://localhost:5173. Vite proxies `/api` to port 18080, preserving same-o
 
 ## Build and test
 
-With Java 21 configured, Docker running for Testcontainers, and dependencies installed:
+For unit tests and frontend/browser checks, start the native app and run:
 
 ```powershell
-cd backend
-.\mvnw.cmd test
-cd ..\frontend
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
+.\scripts\test.ps1
 ```
 
-Browser tests expect a running backend on port 18080; they start Vite if needed. Set `E2E_URL=http://127.0.0.1:18080` to test the packaged application instead. Tests create uniquely named sample shopper accounts and feedback in the local app database. Java integration tests use their own disposable MySQL Testcontainer, separate from app data.
+This runs the account and comparison-engine Java unit tests, frontend tests/build, and Playwright against the packaged application on port 18080. Browser tests create sample accounts and feedback in the local database.
 
-On a machine without a JDK, run backend tests in the included Maven/Java 21 image:
+The full Java API integration suite still uses an isolated MySQL Testcontainer. Docker is optional for running the app, but required for this specific suite. When you want to run it, start Docker Desktop and use:
 
 ```powershell
-$backendPath = (Resolve-Path .\backend).Path
-docker run --rm -v "${backendPath}:/app" -v basketwise-maven:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal -w /app maven:3.9.9-eclipse-temurin-21 mvn -B test
+.\scripts\test.ps1 -WithDockerIntegration
 ```
 
 The Maven Wrapper 3.3.4 uses its official script-only distribution and downloads Maven 3.9.9 on first use; no wrapper JAR is required. Third-party notices are in `docs/THIRD-PARTY.md`.

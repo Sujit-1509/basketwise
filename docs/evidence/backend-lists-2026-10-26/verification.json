@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-26",
+  "scope": "Backend saved-list operations",
+  "runtime": "Java 21, Maven 3.9.9, MySQL 8.4 Testcontainers",
+  "command": "docker run --rm -v <backend>:/app -v basketwise-maven:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal -w /app maven:3.9.9-eclipse-temurin-21 mvn -B test",
+  "result": "PASS",
+  "suites": [
+    {
+      "name": "com.basketwise.AccountServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "accountLookupNormalizesEmailAndReturnsOnlyStoredRole"
+      ]
+    },
+    {
+      "name": "com.basketwise.ApiIntegrationTest",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "savedBasketLifecycleKeepsCopiesIndependentAndPreservesSettings",
+        "suggestionsRefillSixActiveProductsAfterHigherRankedProductsAreArchived",
+        "invalidComparisonAndUnavailableLocalityAreExplained",
+        "duplicateProductsNegativeBudgetAndInvalidReviewAreRejected",
+        "archivedItemsCanBeCopiedAndRemovedButCannotBeAdded",
+        "rolesAndInventoryValidationAreEnforced",
+        "fractionalPackQuantitiesAreRejectedRatherThanTruncated",
+        "nullLinesAndInvalidOrMissingParametersReturn400",
+        "adminServiceAreasAreDiscoverableAndArchivedStoresDisappear",
+        "passwordAndEmailValidation",
+        "everyNewListEndpointEnforcesOwnershipAuthenticationAndCsrf",
+        "seedCatalogAndHealthArePublic",
+        "unauthenticatedAndForgedMutationsAreDenied",
+        "feedbackValidationAndOwnership",
+        "multiBytePasswordLimitIsExplained",
+        "actualCsrfTokenSessionLoginRotationAndLogout",
+        "concurrentAddsKeepEveryIncrementAndOnlyOneProductLine",
+        "fullBasketAllowsExistingIncrementsButRejectsAnExtraProduct",
+        "invalidBasketEditsLeaveTheStoredBasketUnchanged",
+        "registrationCannotChooseAdministratorRole",
+        "catalogAndComparisonApplyOfferWindowsAndFreshnessConsistently",
+        "usersCannotReadChangeOrDeleteOthersLists",
+        "adminCannotSilentlyReplaceTheBrandOrPackOfAStockedProduct",
+        "serverSnapshotsIgnoreClientTotalsAndSurvivePriceChanges"
+      ]
+    },
+    {
+      "name": "com.basketwise.ComparisonEngineTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "feesReverseApparentSavings",
+        "quantitiesAreWholeLinesAndFeesOnce",
+        "deterministicTiesAndInvalidLines",
+        "stockShortageAndNoCompleteBasket",
+        "randomCatalogsAgreeWithIndependentExhaustiveOracle",
+        "offerDatesAreExclusiveAtEnd"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "backend/src/main/java/com/basketwise/Api.java",
+      "sha256": "a83f887f47e8d87017109e208d3e9dbae7c31adac1c88be317854ecb22fb5a44"
+    },
+    {
+      "path": "backend/src/main/java/com/basketwise/GroceryService.java",
+      "sha256": "111662fb3c45cca60b948da719f83f30a34450e55df31c973f1d26bdbae6b245"
+    },
+    {
+      "path": "backend/src/main/java/com/basketwise/Repositories.java",
+      "sha256": "1da6ec1efbaca6f720e456c3399730f6f25cec5767398b0ecf0ee2a4ca8f1f17"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V2__shopping_list_owner_index.sql",
+      "sha256": "43142196bbca6f4eac2da6c2fa03f319b262d53ce7d0b006680ccd0ab6607c09"
+    },
+    {
+      "path": "backend/src/test/java/com/basketwise/ApiIntegrationTest.java",
+      "sha256": "d1e387b46f99b1057fb034d08f80fea51133186f59e9710ba76157205f5eb5a0"
+    }
+  ],
+  "limitations": [
+    "Frontend and browser checks were not rerun; the new endpoints are not wired into the UI.",
+    "Postman collection script syntax was validated; the updated collection was not executed against a running app.",
+    "Integration tests used a disposable MySQL database, not the existing application database."
+  ]
+}

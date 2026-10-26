@@ -92,6 +92,384 @@ class ApiIntegrationTest {
                         Map.of("productId", 3, "quantity", 1)));
     }
 
+    long emptyList(MockHttpSession session) throws Exception {
+        return body(mvc.perform(
+                                post("/api/lists")
+                                        .session(session)
+                                        .with(csrf())
+                                        .contentType("application/json")
+                                        .content(
+                                                "{\"name\":\"Weekly\",\"locality\":\"Kothrud\",\"budget\":50000,\"items\":[]}"))
+                        .andExpect(status().isCreated())
+                        .andReturn())
+                .path("list")
+                .path("id")
+                .asLong();
+    }
+
+    @Test
+    void fullBasketAllowsExistingIncrementsButRejectsAnExtraProduct() throws Exception {
+        var session = shopper();
+        var products = new ArrayList<Models.Product>();
+        for (int n = 0; n < 101; n++) {
+            var p = new Models.Product();
+            p.name = "Limit fixture " + n;
+            p.brand = "Test fixture";
+            p.packSize = "1 kg";
+            p.category = "Test";
+            p.imageUrl = "/images/rice.svg";
+            p.mrp = 10000;
+            products.add(p);
+        }
+        productRepository.saveAllAndFlush(products);
+        Long id = null;
+        try {
+            var lines =
+                    products.subList(0, 100).stream()
+                            .map(p -> Map.of("productId", p.id, "quantity", 1))
+                            .toList();
+            id =
+                    body(mvc.perform(
+                                            post("/api/lists")
+                                                    .session(session)
+                                                    .with(csrf())
+                                                    .contentType("application/json")
+                                                    .content(
+                                                            encode(
+                                                                    Map.of(
+                                                                            "name",
+                                                                            "Full basket",
+                                                                            "locality",
+                                                                            "Kothrud",
+                                                                            "items",
+                                                                            lines))))
+                                    .andExpect(status().isCreated())
+                                    .andReturn())
+                            .path("list")
+                            .path("id")
+                            .asLong();
+            String url = "/api/lists/" + id;
+            mvc.perform(
+                            post(url + "/items")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content(
+                                            encode(
+                                                    Map.of(
+                                                            "productId",
+                                                            products.get(100).id,
+                                                            "quantity",
+                                                            1))))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(
+                            post(url + "/items")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content(
+                                            encode(
+                                                    Map.of(
+                                                            "productId",
+                                                            products.getFirst().id,
+                                                            "quantity",
+                                                            1))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.length()").value(100));
+            var stored = body(mvc.perform(get(url).session(session)).andReturn());
+            int packs = 0;
+            for (var line : stored.path("items")) packs += line.path("quantity").asInt();
+            assertEquals(101, packs);
+            mvc.perform(
+                            put(url).session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content(
+                                            encode(
+                                                    Map.of(
+                                                            "name",
+                                                            "Invalid duplicate",
+                                                            "locality",
+                                                            "Kothrud",
+                                                            "items",
+                                                            List.of(
+                                                                    lines.getFirst(),
+                                                                    lines.getFirst())))))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(get(url).session(session))
+                    .andExpect(jsonPath("$.items.length()").value(100))
+                    .andExpect(jsonPath("$.list.name").value("Full basket"));
+        } finally {
+            if (id != null)
+                mvc.perform(delete("/api/lists/" + id).session(session).with(csrf()))
+                        .andExpect(status().isOk());
+            productRepository.deleteAll(products);
+        }
+    }
+
+    @Test
+    void savedBasketLifecycleKeepsCopiesIndependentAndPreservesSettings() throws Exception {
+        var session = shopper();
+        long id = emptyList(session);
+        String url = "/api/lists/" + id;
+        mvc.perform(
+                        post(url + "/items")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"productId\":2,\"quantity\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].quantity").value(2));
+        mvc.perform(
+                        post(url + "/items")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"productId\":2,\"quantity\":3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].quantity").value(5));
+        mvc.perform(
+                        put(url + "/items/2")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"quantity\":4}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].quantity").value(4));
+        mvc.perform(
+                        patch(url + "/name")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"name\":\"  Monthly staples  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.list.name").value("Monthly staples"));
+        var copy =
+                body(
+                        mvc.perform(
+                                        post(url + "/duplicate")
+                                                .session(session)
+                                                .with(csrf())
+                                                .contentType("application/json")
+                                                .content("{\"name\":\"Next month\"}"))
+                                .andExpect(status().isCreated())
+                                .andReturn());
+        long copyId = copy.path("list").path("id").asLong();
+        assertNotEquals(id, copyId);
+        mvc.perform(delete(url + "/items").session(session).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0))
+                .andExpect(jsonPath("$.list.name").value("Monthly staples"))
+                .andExpect(jsonPath("$.list.locality").value("Kothrud"))
+                .andExpect(jsonPath("$.list.budget").value(50000));
+        mvc.perform(get("/api/lists/" + copyId).session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].quantity").value(4));
+        mvc.perform(get(url).session(session)).andExpect(jsonPath("$.items.length()").value(0));
+        for (int attempt = 0; attempt < 2; attempt++)
+            mvc.perform(delete("/api/lists/" + copyId + "/items/2").session(session).with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(
+                        post(url + "/duplicate")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"name\":\"Empty copy\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void everyNewListEndpointEnforcesOwnershipAuthenticationAndCsrf() throws Exception {
+        var owner = shopper();
+        var other = shopper();
+        String url = "/api/lists/" + emptyList(owner);
+        mvc.perform(get(url).session(other)).andExpect(status().isNotFound());
+        mvc.perform(get(url)).andExpect(status().isUnauthorized());
+        for (var builder :
+                List.of(
+                        patch(url + "/name").content("{\"name\":\"Stolen\"}"),
+                        post(url + "/duplicate").content("{\"name\":\"Stolen\"}"),
+                        delete(url + "/items"),
+                        post(url + "/items").content("{\"productId\":2,\"quantity\":1}"),
+                        put(url + "/items/2").content("{\"quantity\":1}"),
+                        delete(url + "/items/2"))) {
+            builder.contentType("application/json");
+            mvc.perform(builder).andExpect(status().isForbidden());
+            mvc.perform(builder.with(csrf())).andExpect(status().isUnauthorized());
+            mvc.perform(builder.session(other)).andExpect(status().isNotFound());
+        }
+        mvc.perform(get(url).session(owner))
+                .andExpect(jsonPath("$.list.name").value("Weekly"))
+                .andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(get("/api/lists/9223372036854775807").session(owner))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void invalidBasketEditsLeaveTheStoredBasketUnchanged() throws Exception {
+        var session = shopper();
+        String url = "/api/lists/" + emptyList(session);
+        mvc.perform(
+                        post(url + "/items")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"productId\":2,\"quantity\":999}"))
+                .andExpect(status().isOk());
+        String before =
+                mvc.perform(get(url).session(session))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        for (String input :
+                List.of(
+                        "{\"productId\":2,\"quantity\":1}",
+                        "{\"productId\":2,\"quantity\":0}",
+                        "{\"productId\":2,\"quantity\":-1}",
+                        "{\"productId\":2,\"quantity\":1.5}",
+                        "{\"productId\":2,\"quantity\":1000}",
+                        "{\"productId\":999999,\"quantity\":1}",
+                        "{\"productId\":null,\"quantity\":1}"))
+            mvc.perform(
+                            post(url + "/items")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content(input))
+                    .andExpect(status().isBadRequest());
+        for (String input :
+                List.of("{}", "{\"quantity\":null}", "{\"quantity\":0}", "{\"quantity\":1000}"))
+            mvc.perform(
+                            put(url + "/items/2")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content(input))
+                    .andExpect(status().isBadRequest());
+        mvc.perform(
+                        put(url + "/items/3")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"quantity\":1}"))
+                .andExpect(status().isNotFound());
+        for (String suffix : List.of("/name", "/duplicate"))
+            mvc.perform(
+                            (suffix.equals("/name") ? patch(url + suffix) : post(url + suffix))
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content("{\"name\":\"   \"}"))
+                    .andExpect(status().isBadRequest());
+        assertEquals(
+                before,
+                mvc.perform(get(url).session(session))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString());
+        mvc.perform(
+                        put(url).session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content(
+                                        "{\"name\":\"Empty\",\"locality\":\"Kothrud\",\"items\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(
+                        post("/api/comparisons")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"locality\":\"Kothrud\",\"items\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void archivedItemsCanBeCopiedAndRemovedButCannotBeAdded() throws Exception {
+        var session = shopper();
+        String url = "/api/lists/" + emptyList(session);
+        mvc.perform(
+                        post(url + "/items")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"productId\":2,\"quantity\":1}"))
+                .andExpect(status().isOk());
+        var product = productRepository.findById(2L).orElseThrow();
+        product.active = false;
+        productRepository.saveAndFlush(product);
+        try {
+            mvc.perform(
+                            post(url + "/items")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content("{\"productId\":2,\"quantity\":1}"))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(
+                            put(url + "/items/2")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content("{\"quantity\":2}"))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(
+                            post(url + "/duplicate")
+                                    .session(session)
+                                    .with(csrf())
+                                    .contentType("application/json")
+                                    .content("{\"name\":\"Old products retained\"}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.items[0].productId").value(2));
+            mvc.perform(delete(url + "/items/2").session(session).with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.length()").value(0));
+        } finally {
+            product.active = true;
+            productRepository.saveAndFlush(product);
+        }
+    }
+
+    @Test
+    void concurrentAddsKeepEveryIncrementAndOnlyOneProductLine() throws Exception {
+        var session = shopper();
+        String url = "/api/lists/" + emptyList(session);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var ready = new java.util.concurrent.CountDownLatch(6);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(6)) {
+            var calls = new ArrayList<java.util.concurrent.Future<Integer>>();
+            for (int n = 0; n < 6; n++)
+                calls.add(
+                        pool.submit(
+                                () -> {
+                                    ready.countDown();
+                                    if (!start.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                                        throw new AssertionError("Start timed out");
+                                    return mvc.perform(
+                                                    post(url + "/items")
+                                                            .session(session)
+                                                            .with(csrf())
+                                                            .contentType("application/json")
+                                                            .content(
+                                                                    "{\"productId\":2,\"quantity\":1}"))
+                                            .andReturn()
+                                            .getResponse()
+                                            .getStatus();
+                                }));
+            assertTrue(ready.await(10, java.util.concurrent.TimeUnit.SECONDS));
+            start.countDown();
+            for (var call : calls)
+                assertEquals(200, call.get(30, java.util.concurrent.TimeUnit.SECONDS));
+        }
+        mvc.perform(get(url).session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].quantity").value(6));
+    }
+
     @Test
     void seedCatalogAndHealthArePublic() throws Exception {
         mvc.perform(get("/api/catalog"))

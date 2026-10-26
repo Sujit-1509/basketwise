@@ -32,7 +32,7 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (['POST','PUT','DELETE'].includes(pm.request.method)) {",
+          "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method)) {",
           "  pm.sendRequest(pm.collectionVariables.get('baseUrl') + '/api/auth/csrf', (err, res) => {",
           "    if (err) throw err; const csrf = res.json(); pm.request.headers.upsert({key:csrf.headerName,value:csrf.token});",
           "  });",
@@ -304,6 +304,217 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Expected status', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reopen saved list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/lists/{{listId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add more packs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 2,\n  \"quantity\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));",
+                  "pm.test('Duplicate product merged', () => { const lines=pm.response.json().items.filter(i=>i.productId===2); pm.expect(lines.length).to.eql(1); pm.expect(lines[0].quantity).to.eql(3); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set pack quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/items/2",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rename list",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/name",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly staples\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate list",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/duplicate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Next month\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('copyId', pm.response.json().list.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/items/2"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clear original list",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/lists/{{listId}}/items"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));",
+                  "pm.test('List cleared, settings retained', () => { const result=pm.response.json(); pm.expect(result.items).to.eql([]); pm.expect(result.list.name).to.eql('Monthly staples'); pm.expect(result.list.budget).to.eql(50000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check independent copy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/lists/{{copyId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));",
+                  "pm.test('Copy unaffected', () => { const lines=pm.response.json().items; pm.expect(lines.length).to.eql(2); pm.expect(lines.find(i=>i.productId===2).quantity).to.eql(4); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete copied list",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/lists/{{copyId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', () => pm.response.to.have.status(200));"
                 ]
               }
             }

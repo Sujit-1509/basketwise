@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-26",
+  "runtime": "Native Windows: Temurin 21.0.12.1+1, MySQL 8.4.11",
+  "migration": {
+    "matched": true,
+    "tables": {
+      "flyway_schema_history": {
+        "rows": 2,
+        "sha256": "8cd1225e3bfbc3a3997c79eda17686ab311d422e46292e1d64e1452fa6b7d284"
+      },
+      "inventory": {
+        "rows": 188,
+        "sha256": "bc7ec953a1bdc0985b8529d6a5b830931753d9498c81f0e9dc77283112aa891a"
+      },
+      "list_items": {
+        "rows": 42,
+        "sha256": "9077aec13c34550cc3bab3bca968fb97f29384ac66323c964762e537be001c99"
+      },
+      "products": {
+        "rows": 51,
+        "sha256": "45d440e075ee70169d1dab23ed536b5d10a83375f7aad574087a910aa1eaf2a0"
+      },
+      "reviews": {
+        "rows": 11,
+        "sha256": "30037fc6d65286f12e02faec6c3123f659aeb392d585245d96f38b4a942d9cfc"
+      },
+      "saved_plans": {
+        "rows": 13,
+        "sha256": "715d34458a09f3ec1af106472f42c2b705c34ac01bbb9da1db85d943b6291184"
+      },
+      "shopping_lists": {
+        "rows": 21,
+        "sha256": "6d077e1e35bb961d4c0e4afb0634a9b27638146a8a99e974b73e69de8738317e"
+      },
+      "stores": {
+        "rows": 26,
+        "sha256": "bc3a0e3c52b7b6926f1cbb7ae408ac6b9980a9e1f0c60749ae14765625a1a121"
+      },
+      "users": {
+        "rows": 50,
+        "sha256": "4630bccd561aabf5e13f206c120ff0e6311c87554cb59e6c3c4de0042ccd638d"
+      }
+    }
+  },
+  "backupSha256": "e47809273a2c778db9f277a49cdeb05d933bdb15c3ccc06b05db2ce68036801f",
+  "nativeTests": {
+    "javaUnit": 7,
+    "frontend": 12,
+    "browser": 14,
+    "failures": 0
+  },
+  "fullApiIntegration": "31 backend tests previously passed in Docker for the saved-list milestone; this migration run used the 7 native unit tests and 14 browser tests instead.",
+  "startup": "Native start, stop, start and repeated start verified. Health UP; public catalog 30 active products and 6 stores.",
+  "cleanup": {
+    "preserved": "Other project images, five stopped actor audit containers, and three unrelated volumes",
+    "removed": [
+      "basketwise-app-1",
+      "basketwise-db-1",
+      "basketwise_default",
+      "basketwise_mysql-data",
+      "basketwise-maven",
+      "basketwise-app:latest",
+      "maven:3.9.9-eclipse-temurin-21",
+      "mysql:8.4",
+      "testcontainers/ryuk:0.12.0"
+    ],
+    "buildCacheAfter": "0B",
+    "buildCacheReportedCleared": "1.89GB"
+  },
+  "scriptHashes": [
+    {
+      "file": "scripts/build-native.ps1",
+      "sha256": "c7c4563050bbbaf2f4129dc95c1c7e362283f1540892e6d0b40fed4df482f31b"
+    },
+    {
+      "file": "scripts/native-common.ps1",
+      "sha256": "8e13fb74e69727478d1ad20ec41743701e34fbc54624f72b62343f3b05947734"
+    },
+    {
+      "file": "scripts/setup-native.ps1",
+      "sha256": "968baff5751ac5a4310a61ea6627e51d818bf8eb490557afece608abe00dc8cf"
+    },
+    {
+      "file": "scripts/start.ps1",
+      "sha256": "63720f760aa8283dde6c7b81143ffbb8d45ea66803b0fab6a67d970f9bee3141"
+    },
+    {
+      "file": "scripts/stop.ps1",
+      "sha256": "8358b86fd98524bf2fad3ef72eacd4975b61e7d9714d96aa0414d162e4f44320"
+    },
+    {
+      "file": "scripts/test.ps1",
+      "sha256": "d0b1ab2f69e9fa4627660d7c7e250a36136b8cde88b49da3055b255c785f01d3"
+    }
+  ]
+}

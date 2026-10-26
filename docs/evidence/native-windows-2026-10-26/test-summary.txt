@@ -1,0 +1,6 @@
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.502 s -- in com.basketwise.AccountServiceTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.138 s -- in com.basketwise.ComparisonEngineTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+ Test Files  3 passed (3)
+      Tests  12 passed (12)
+  14 passed (28.3s)
