@@ -17,7 +17,7 @@ import {
   BrowseLink,
   LocalitySelect,
 } from "../ui";
-import { money, type Product } from "../types";
+import { money, expiryStatus, type Product } from "../types";
 export default function GroceryList() {
   const { data, isLoading, error } = useCatalog();
   const draft = useAppSelector((s) => s.draft);
@@ -31,6 +31,9 @@ export default function GroceryList() {
   if (isLoading) return <Loading />;
   if (error) return <Failure error={error} />;
   if (!data) return null;
+  const expiryTones = draft.items.map((l) => expiryStatus(l.expiryDate)?.tone);
+  const expiredCount = expiryTones.filter((t) => t === "expired").length;
+  const soonCount = expiryTones.filter((t) => t === "soon").length;
   const validBudget =
     draft.budget === null ||
     (Number.isSafeInteger(draft.budget) &&
@@ -127,8 +130,12 @@ export default function GroceryList() {
             <div className="list-rows">
               {draft.items.map((line) => {
                 const p = data.products.find((p) => p.id === line.productId);
+                const expiry = expiryStatus(line.expiryDate);
                 return (
-                  <article className="list-row" key={line.productId}>
+                  <article
+                    className={`list-row${expiry ? ` ${expiry.tone}` : ""}`}
+                    key={line.productId}
+                  >
                     {p ? (
                       <>
                         <img width="70" height="70" src={p.imageUrl} alt="" />
@@ -149,6 +156,29 @@ export default function GroceryList() {
                     ) : (
                       <p>Product unavailable (#{line.productId})</p>
                     )}
+                    <div className="list-expiry">
+                      <label>
+                        Expiry date (optional)
+                        <input
+                          type="date"
+                          aria-label={`Expiry date for ${p?.name}`}
+                          value={line.expiryDate ?? ""}
+                          onChange={(e) =>
+                            dispatch(
+                              actions.expiry({
+                                productId: line.productId,
+                                expiryDate: e.target.value || null,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+                      {expiry ? (
+                        <span className={`expiry-badge ${expiry.tone}`}>
+                          {expiry.label}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="quantity">
                       <button
                         aria-label={`Decrease ${p?.name}`}
@@ -220,6 +250,17 @@ export default function GroceryList() {
             {draft.items.reduce((s, l) => s + l.quantity, 0)} packs
           </p>
           <p>We’ll check the full list, stock, and every store’s fees.</p>
+          {expiredCount || soonCount ? (
+            <p className="notice warning" role="status">
+              {[
+                expiredCount ? `${expiredCount} expired` : "",
+                soonCount ? `${soonCount} expiring soon` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              . Use these first or replace them.
+            </p>
+          ) : null}
           {notice ? (
             <p className="notice success" role="status">
               {notice}

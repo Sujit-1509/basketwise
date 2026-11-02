@@ -26,7 +26,7 @@ Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` 
 | PATCH | `/lists/{id}/name` | `{ "name": "Monthly staples" }`; rename only | Owner |
 | POST | `/lists/{id}/duplicate` | `{ "name": "Next month" }`; independent copy, returns 201 | Owner |
 | DELETE | `/lists/{id}/items` | Empty list; preserve name, locality and budget | Owner |
-| POST | `/lists/{id}/items` | `{ "productId": 2, "quantity": 1 }`; add packs, merge existing product | Owner |
+| POST | `/lists/{id}/items` | `{ "productId": 2, "quantity": 1, "expiryDate": "2026-11-30" }`; add packs, merge existing product (`expiryDate` optional; a non-null value replaces the stored one) | Owner |
 | PUT | `/lists/{id}/items/{productId}` | `{ "quantity": 3 }`; set an existing line's pack count | Owner |
 | DELETE | `/lists/{id}/items/{productId}` | Remove line; already absent is a successful no-op | Owner |
 | GET | `/plans` | Current user's immutable snapshots | Signed in |
@@ -46,9 +46,9 @@ Call `GET /auth/csrf`, retain its session cookie, and send the returned `token` 
 
 ## Saved basket editing
 
-All list reads and mutations return the existing `ListView` shape: `{ "list": { "id", "ownerId", "name", "locality", "budget", "updatedAt" }, "items": [{ "id", "listId", "productId", "quantity" }] }`. Delete-list returns `{ "ok": true }`. Item order is unspecified; use productId as the UI key. Names and localities are trimmed on full saves; rename trims the name. Money remains integer paise.
+All list reads and mutations return the existing `ListView` shape: `{ "list": { "id", "ownerId", "name", "locality", "budget", "updatedAt" }, "items": [{ "id", "listId", "productId", "quantity", "expiryDate" }] }`. Delete-list returns `{ "ok": true }`. Item order is unspecified; use productId as the UI key. Names and localities are trimmed on full saves; rename trims the name. Money remains integer paise.
 
-A saved list can contain zero to 100 distinct products. Each line has 1–999 whole packs. Adding an existing product increments its quantity; exceeding 999 returns 400 without changing the list. Full-list replacement still rejects duplicate product IDs instead of silently combining ambiguous input. Adding and changing quantities require an active catalog product. Removing, clearing, renaming and duplicating remain available when an old product is archived. A duplicate retains the archived product ID; remove it before comparing. An empty list can be saved or duplicated, but cannot be compared or saved as a priced plan.
+A saved list can contain zero to 100 distinct products. Each line has 1–999 whole packs and an optional `expiryDate` (ISO calendar date `YYYY-MM-DD`, or null). Full saves replace it; duplicates copy it; comparisons ignore it. Adding an existing product increments its quantity; exceeding 999 returns 400 without changing the list. Full-list replacement still rejects duplicate product IDs instead of silently combining ambiguous input. Adding and changing quantities require an active catalog product. Removing, clearing, renaming and duplicating remain available when an old product is archived. A duplicate retains the archived product ID; remove it before comparing. An empty list can be saved or duplicated, but cannot be compared or saved as a priced plan.
 
 Mutations lock the owned shopping-list row for the transaction. READ_COMMITTED isolation ensures an incremental request that waited for the lock reads the previous request's committed quantities. This serializes increments and other mutations of the same list without blocking edits to other lists. A full PUT intentionally replaces the whole list: a stale client's PUT can overwrite a newer edit. Use item endpoints for individual edits; full-document conflict detection is not implemented. POST add is not idempotent: do not retry an uncertain response automatically; refetch the list first.
 

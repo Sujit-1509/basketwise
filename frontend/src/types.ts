@@ -55,6 +55,7 @@ export interface User {
 export interface Line {
   productId: number;
   quantity: number;
+  expiryDate?: string | null;
 }
 export interface CompareInput {
   locality: string;
@@ -120,6 +121,40 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+}
+export const EXPIRY_SOON_DAYS = 3;
+export interface ExpiryStatus {
+  tone: "expired" | "soon" | "fresh";
+  label: string;
+}
+// Expiry dates are calendar days ("YYYY-MM-DD"), compared in local time.
+export function expiryStatus(
+  date: string | null | undefined,
+  today = new Date(),
+): ExpiryStatus | null {
+  const m = date ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(date) : null;
+  if (!m) return null;
+  const expiry = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((expiry - now) / 86400000);
+  const when = new Date(expiry).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  if (days < 0)
+    return {
+      tone: "expired",
+      label: `Expired ${-days} day${days === -1 ? "" : "s"} ago (${when})`,
+    };
+  if (days === 0) return { tone: "soon", label: `Expires today (${when})` };
+  if (days <= EXPIRY_SOON_DAYS)
+    return {
+      tone: "soon",
+      label: `Expires in ${days} day${days === 1 ? "" : "s"} (${when})`,
+    };
+  return { tone: "fresh", label: `Best before ${when}` };
 }
 export const money = (paise: number) =>
   new Intl.NumberFormat("en-IN", {
