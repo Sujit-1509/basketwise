@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 public final class Models {
     private Models() {}
@@ -163,6 +164,7 @@ public final class Models {
         public Long listId;
         public Long productId;
         public int quantity;
+        public LocalDate expiryDate;
     }
 
     @Entity

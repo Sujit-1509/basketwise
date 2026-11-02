@@ -190,6 +190,13 @@ const draft = createSlice({
           : i,
       );
     },
+    expiry: (
+      s,
+      a: PayloadAction<{ productId: number; expiryDate: string | null }>,
+    ) => {
+      const line = s.items.find((i) => i.productId === a.payload.productId);
+      if (line) line.expiryDate = a.payload.expiryDate || null;
+    },
     remove: (s, a: PayloadAction<number>) => {
       s.items = s.items.filter((i) => i.productId !== a.payload);
     },

@@ -10,7 +10,23 @@ import {
 } from "../state";
 import { PageTitle, Loading, Failure, Empty, BrowseLink } from "../ui";
 import { BasketCard } from "./Compare";
-import type { Snapshot } from "../types";
+import { expiryStatus, type Line, type Snapshot } from "../types";
+function ExpirySummary({ items }: { items: Line[] }) {
+  const tones = items.map((i) => expiryStatus(i.expiryDate)?.tone);
+  const expired = tones.filter((t) => t === "expired").length;
+  const soon = tones.filter((t) => t === "soon").length;
+  if (!expired && !soon) return null;
+  return (
+    <p className={`expiry-badge ${expired ? "expired" : "soon"}`}>
+      {[
+        expired ? `${expired} expired` : "",
+        soon ? `${soon} expiring soon` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+    </p>
+  );
+}
 export default function History() {
   const lists = api.useListsQuery();
   const plans = api.usePlansQuery();
@@ -62,6 +78,7 @@ export default function History() {
                 <p>
                   {items.length} products · {list.locality}
                 </p>
+                <ExpirySummary items={items} />
                 <small>
                   Updated {new Date(list.updatedAt).toLocaleString("en-IN")}
                 </small>
@@ -79,6 +96,7 @@ export default function History() {
                         items: items.map((i) => ({
                           productId: i.productId,
                           quantity: i.quantity,
+                          expiryDate: i.expiryDate ?? null,
                         })),
                       }),
                     );

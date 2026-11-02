@@ -282,6 +282,63 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void optionalExpiryDatesAreSavedCopiedAndCleared() throws Exception {
+        var session = shopper();
+        long id = emptyList(session);
+        String url = "/api/lists/" + id;
+        mvc.perform(
+                        put(url)
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content(
+                                        "{\"name\":\"Pantry\",\"locality\":\"Kothrud\",\"items\":[{\"productId\":2,\"quantity\":1,\"expiryDate\":\"2026-11-30\"},{\"productId\":3,\"quantity\":1}]}"))
+                .andExpect(status().isOk());
+        mvc.perform(get(url).session(session))
+                .andExpect(jsonPath("$.items[?(@.productId == 2)].expiryDate").value("2026-11-30"))
+                .andExpect(jsonPath("$.items[?(@.productId == 3)].expiryDate").value((Object) null));
+        mvc.perform(
+                        post(url + "/items")
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content("{\"productId\":2,\"quantity\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.productId == 2)].expiryDate").value("2026-11-30"));
+        long copyId =
+                body(mvc.perform(
+                                        post(url + "/duplicate")
+                                                .session(session)
+                                                .with(csrf())
+                                                .contentType("application/json")
+                                                .content("{\"name\":\"Pantry copy\"}"))
+                                .andExpect(status().isCreated())
+                                .andReturn())
+                        .path("list")
+                        .path("id")
+                        .asLong();
+        mvc.perform(get("/api/lists/" + copyId).session(session))
+                .andExpect(jsonPath("$.items[?(@.productId == 2)].expiryDate").value("2026-11-30"));
+        mvc.perform(
+                        put(url)
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content(
+                                        "{\"name\":\"Pantry\",\"locality\":\"Kothrud\",\"items\":[{\"productId\":2,\"quantity\":2,\"expiryDate\":null}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].expiryDate").value((Object) null));
+        mvc.perform(
+                        put(url)
+                                .session(session)
+                                .with(csrf())
+                                .contentType("application/json")
+                                .content(
+                                        "{\"name\":\"Pantry\",\"locality\":\"Kothrud\",\"items\":[{\"productId\":2,\"quantity\":2,\"expiryDate\":\"30/11/2026\"}]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void everyNewListEndpointEnforcesOwnershipAuthenticationAndCsrf() throws Exception {
         var owner = shopper();
         var other = shopper();

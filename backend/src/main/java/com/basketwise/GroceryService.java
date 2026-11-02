@@ -65,7 +65,8 @@ public class GroceryService {
 
     record Me(UserView user) {}
 
-    record Line(@NotNull Long productId, @Min(1) @Max(999) int quantity) {}
+    record Line(
+            @NotNull Long productId, @Min(1) @Max(999) int quantity, LocalDate expiryDate) {}
 
     record ListInput(
             @NotBlank @Size(max = 100) String name,
@@ -321,6 +322,7 @@ public class GroceryService {
                                     i.listId = l.id;
                                     i.productId = line.productId();
                                     i.quantity = line.quantity();
+                                    i.expiryDate = line.expiryDate();
                                     return i;
                                 })
                         .toList();
@@ -357,6 +359,7 @@ public class GroceryService {
             item.listId = copy.id;
             item.productId = line.productId;
             item.quantity = line.quantity;
+            item.expiryDate = line.expiryDate;
             items.save(item);
         }
         return changedList(copy);
@@ -391,6 +394,7 @@ public class GroceryService {
         if (quantity > 999)
             throw new IllegalArgumentException("A product can have at most 999 packs");
         line.quantity = quantity;
+        if (input.expiryDate() != null) line.expiryDate = input.expiryDate();
         items.save(line);
         return changedList(l);
     }
@@ -406,7 +410,7 @@ public class GroceryService {
                                 () ->
                                         new ResponseStatusException(
                                                 HttpStatus.NOT_FOUND, "Item not found"));
-        validateLines(List.of(new Line(productId, input.quantity())));
+        validateLines(List.of(new Line(productId, input.quantity(), null)));
         line.quantity = input.quantity();
         items.save(line);
         return changedList(l);

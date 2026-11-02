@@ -1191,6 +1191,52 @@ textarea {
 .quantity input::-webkit-inner-spin-button {
   appearance: none;
 }
+.list-row.expired {
+  box-shadow: inset 3px 0 0 #c4553f;
+  padding-left: 10px;
+}
+.list-row.soon {
+  box-shadow: inset 3px 0 0 #d39a3d;
+  padding-left: 10px;
+}
+.list-expiry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 150px;
+  flex-shrink: 0;
+}
+.list-expiry label {
+  font-size: 9px;
+  gap: 5px;
+  margin-bottom: 0;
+}
+.list-expiry label input {
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.expiry-badge {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.4;
+  background: #edf2e6;
+  color: var(--green);
+}
+.expiry-badge.soon {
+  background: #fff4da;
+  color: #805b25;
+}
+.expiry-badge.expired {
+  background: #fff0ec;
+  color: #973c2e;
+}
+.saved-list .expiry-badge {
+  margin-top: 6px;
+}
 .list-summary {
   height: max-content;
   position: sticky;
@@ -2016,6 +2062,11 @@ textarea {
   }
   .list-row .quantity {
     margin-left: 58px;
+  }
+  .list-row .list-expiry {
+    order: 1;
+    width: 100%;
+    padding-left: 58px;
   }
   .list-row .icon-button {
     margin-left: auto;
